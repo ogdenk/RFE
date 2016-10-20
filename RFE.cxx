@@ -1,6 +1,3 @@
-//#include <afxwin.h>         // MFC core and standard components
-//#include <afxext.h>         // MFC extensions
-
 #include "itkTestingExtractSliceImageFilter.h"
 #include "itkBinaryThresholdImageFilter.h"
 #include "itkBinaryMedianImageFilter.h"
@@ -12,9 +9,9 @@
 #include "itkBinaryImageToStatisticsLabelMapFilter.h"
 #include "itkDiscreteGaussianImageFilter.h"
 #include "QuickView.h"
-
+#include <stdio.h>
 #include <vector>
-#include "math.h"
+
 
 // These are the Freesurfer label values for the structures of interest
 #define LeftHippocampus 17
@@ -25,18 +22,17 @@
 
 int main(int argc, char * argv[])
 {
-  unsigned short int labelValue;
-  std::string labelName;
+  
+  unsigned short int labelValue; // holds the current label value during the loop
+  std::string labelName;		 // holds the current label name during the loop
   const unsigned int Dimension = 3;
   int i, j, k; // used for general purpose indexing
   int radius=1;  // size of neighborhood for GLCM determination
-  bool found;
+  bool found;  // used to build the texture neighborhood vector
 
   // both image data and labels can be opened as UINT's
   typedef  unsigned short  int								   PixelType;
-  typedef unsigned char										   LabelPixelType;
   typedef itk::Image< PixelType, Dimension >                   ImageType;
-  typedef itk::Image< LabelPixelType, Dimension>			   LabelImageType;
   typedef itk::Image< PixelType, Dimension-1>				   SliceType;
 
   ImageType::SizeType medianRadius; // used for binary median image filter
@@ -44,6 +40,7 @@ int main(int argc, char * argv[])
   medianRadius[1] = 1;
   medianRadius[2] = 1;
 
+  // Get the input directory specified on the command line
   std::string inputDirectory;
   if (argc > 1)
   {
@@ -52,13 +49,19 @@ int main(int argc, char * argv[])
   else
   {
   	std::cout <<  "Input a directory containing files to process" << std::endl;
+	exit(1);
   }
 
   // the file names for the brain scan and the label image
   std::string imageData = inputDirectory + "/orig.nrrd";
   std::string labelData = inputDirectory + "/labels.nrrd";
-	
+  std::string outputstring; // used to format text output to the file
 
+  // Open the output file and put the directory name on the first line
+  FILE * outputFile = fopen((inputDirectory + "features.csv").c_str(), "wt");
+  outputstring = "Output Directory = " + inputDirectory + "\n";
+  fprintf(outputFile, outputstring.c_str());
+	
   // Create vectors of label names and label values
   std::vector<std::string> labelNames;
   labelNames.reserve(4); //storage for four labels
@@ -78,7 +81,6 @@ int main(int argc, char * argv[])
   std::vector<std::string>::iterator labelNamesIterator = labelNames.begin();
   std::vector<unsigned short int>::iterator labelValuesIterator = labelValues.begin();
 
-  
   // open the image data
   typedef itk::ImageFileReader< ImageType >  ReaderType;
   ReaderType::Pointer imageReader = ReaderType::New();
@@ -86,14 +88,14 @@ int main(int argc, char * argv[])
   imageReader->Update();
 
   // open the labels
-  typedef itk::ImageFileReader< LabelImageType >  LabelReaderType;
+  typedef itk::ImageFileReader< ImageType >  LabelReaderType;
   LabelReaderType::Pointer labelReader = LabelReaderType::New();
   labelReader->SetFileName(labelData);
   labelReader->Update();
   labelReader->GetOutput()->SetSpacing(imageReader->GetOutput()->GetSpacing());
   labelReader->GetOutput()->SetOrigin(imageReader->GetOutput()->GetOrigin());
 
-  // This is just to get a look at one of the slices of the image data.  This block can be commented out
+ /* // This is just to get a look at one of the slices of the image data.  This block can be commented out
   ///////////////////////////////////////////////////////////////////////////////////////////////////////
   ImageType::SizeType imagesize = labelReader->GetOutput()->GetLargestPossibleRegion().GetSize();
   ImageType::RegionType extractRegion;
@@ -105,7 +107,7 @@ int main(int argc, char * argv[])
   extractRegion.SetIndex(2,128); // extract image slice 128 for viewing purposes
 
   
-  typedef itk::Testing::ExtractSliceImageFilter<LabelImageType, SliceType> ExtractSliceType;
+  typedef itk::Testing::ExtractSliceImageFilter<ImageType, SliceType> ExtractSliceType;
   ExtractSliceType::Pointer SliceExtracter = ExtractSliceType::New();
   SliceExtracter->SetInput(labelReader->GetOutput());
   SliceExtracter->SetExtractionRegion(extractRegion);
@@ -117,6 +119,7 @@ int main(int argc, char * argv[])
   viewer.AddImage(SliceExtracter->GetOutput());
   viewer.Visualize();
   ////////////////////////////////////////////////////////////////////////////////////////////////////////
+  */
 
   // Create smoothed version of the image data
   typedef itk::DiscreteGaussianImageFilter<ImageType, ImageType> SmoothingType;
@@ -126,55 +129,35 @@ int main(int argc, char * argv[])
   smoother->SetUseImageSpacingOn(); // this is the default value but just in case
   smoother->SetMaximumKernelWidth(5);
 
-  // Now we have the image data and a smoothed version, plus the label image open.
-  
-  // probably don't need this
-  typedef itk::BinaryThresholdImageFilter< ImageType, ImageType >  FilterType;
-  FilterType::Pointer filter = FilterType::New();
-  const PixelType outsideValue = 0;
-  const PixelType insideValue  = 1;
-  filter->SetOutsideValue( outsideValue );
-  filter->SetInsideValue(  insideValue  );
-  const PixelType lowerThreshold =1;
-  const PixelType upperThreshold =10000;
-  filter->SetInput(imageReader->GetOutput() );
-  filter->SetLowerThreshold( lowerThreshold );
-  filter->SetUpperThreshold( upperThreshold );
-  filter->Update();
-
-
   // Set up the pipeline then we will iterate over the labels to be processed
+  /////////////////////////////////////////////////////////////////////////////////////////
 
   //  Median filter to smooth the edges of the labels
-  typedef itk::BinaryMedianImageFilter<LabelImageType, LabelImageType> MedianFilterType;
+  typedef itk::BinaryMedianImageFilter<ImageType, ImageType> MedianFilterType;
   MedianFilterType::Pointer medianFilter = MedianFilterType::New();
   medianFilter->SetRadius(medianRadius);
   medianFilter->SetBackgroundValue(0);
   medianFilter->SetInput(labelReader->GetOutput());
 
   //  Shape filter to extract shape metrics from the labels
-  typedef itk::BinaryImageToShapeLabelMapFilter<LabelImageType> BinaryImageToShapeLabelMapFilterType;
+  typedef itk::BinaryImageToShapeLabelMapFilter<ImageType> BinaryImageToShapeLabelMapFilterType;
   BinaryImageToShapeLabelMapFilterType::Pointer binaryImageToShapeLabelMapFilter = BinaryImageToShapeLabelMapFilterType::New();
   binaryImageToShapeLabelMapFilter->SetComputeFeretDiameter(true);
   binaryImageToShapeLabelMapFilter->SetInput(medianFilter->GetOutput());
   BinaryImageToShapeLabelMapFilterType::OutputImageType::LabelObjectType* labelObject;
 
   //  Statistics filter to get the gray level statistics from the MRI image for a particular label location
-  typedef itk::BinaryImageToStatisticsLabelMapFilter<LabelImageType, ImageType> BinaryImageToStatisticsLabelMapFilterType;
+  typedef itk::BinaryImageToStatisticsLabelMapFilter<ImageType, ImageType> BinaryImageToStatisticsLabelMapFilterType;
   BinaryImageToStatisticsLabelMapFilterType::Pointer BinaryToStatisticsFilter = BinaryImageToStatisticsLabelMapFilterType::New();
   BinaryToStatisticsFilter->SetInput1(medianFilter->GetOutput());
   BinaryToStatisticsFilter->SetComputeHistogram(TRUE);
   BinaryToStatisticsFilter->SetCoordinateTolerance(0.01);
   BinaryImageToStatisticsLabelMapFilterType::OutputImageType::LabelObjectType* StatlabelObject;
-  
-  //  Maybe don't need this
-  typedef itk::MaskImageFilter<ImageType, ImageType> MaskFilterType;
-  MaskFilterType::Pointer maskFilter = MaskFilterType::New();
-  
+ 
   //  Texture filter to get the Haralick features
   typedef itk::Statistics::ScalarImageToTextureFeaturesFilter<ImageType> TextureFilterType;
   TextureFilterType::Pointer textureFilter = TextureFilterType::New();
-  textureFilter->SetMaskImage(filter->GetOutput());
+  textureFilter->SetMaskImage(medianFilter->GetOutput());
   textureFilter->SetFastCalculations(false);
   textureFilter->SetNumberOfBinsPerAxis(1024);
   textureFilter->SetPixelValueMinMax(0, 2048);
@@ -221,6 +204,7 @@ int main(int argc, char * argv[])
 
 
   // Iterate over the labels we want to process
+  //////////////////////////////////////////////////////////////////////////////////////////////////////////
   i = 0;
   while (labelNamesIterator != labelNames.end())
   {
@@ -244,10 +228,21 @@ int main(int argc, char * argv[])
 	  {
 		  labelObject = binaryImageToShapeLabelMapFilter->GetOutput()->GetNthLabelObject(j);
 		  std::cout << labelObject->GetRoundness() << std::endl;
+		  outputstring = labelName + "Roundness, %f \n";
+		  fprintf(outputFile, outputstring.c_str(), labelObject->GetRoundness());
 		  std::cout << labelObject->GetFlatness() << std::endl;
+		  outputstring = labelName + "Flatness, %f \n";
+		  fprintf(outputFile, outputstring.c_str(), labelObject->GetFlatness());
 		  std::cout << labelObject->GetFeretDiameter() << std::endl;
-		  std::cout << labelObject->GetNumberOfPixels() << std::endl;
+		  outputstring = labelName + "FeretDiameter, %f \n";
+		  fprintf(outputFile, outputstring.c_str(), labelObject->GetFeretDiameter());
 		  std::cout << labelObject->GetPhysicalSize() << std::endl;
+		  outputstring = labelName + "Volume, %f \n";
+		  fprintf(outputFile, outputstring.c_str(), labelObject->GetPhysicalSize());
+		  std::cout << labelObject->GetElongation() << std::endl;
+		  outputstring = labelName + "Elongation, %f \n";
+		  fprintf(outputFile, outputstring.c_str(), labelObject->GetElongation());
+
 		  //std::cout << "Object " << i << " has principal axes " << labelObject->GetPrincipalAxes() << std::endl;
 		  //std::cout << "Object " << i << " has principal moments " << labelObject->GetPrincipalMoments() << std::endl;
 		  
@@ -290,6 +285,44 @@ int main(int argc, char * argv[])
 		  std::cout << (*output)[i] << std::endl;
 		  std::cout << (*outputSD)[i] << std::endl;
 	  }
+	  std::cout << std::endl << std::endl;
+
+	  // Now get the statistics for the Blurred image data using the current label
+
+	  BinaryToStatisticsFilter->SetInput2(smoother->GetOutput());
+	  BinaryToStatisticsFilter->SetInputForegroundValue(labelValue);
+	  BinaryToStatisticsFilter->Update();
+
+	  std::cout << "There is " << BinaryToStatisticsFilter->GetOutput()->GetNumberOfLabelObjects() << " object with statistics." << std::endl;
+	  std::cout << "Statistics values from blurred image for " << labelName << std::endl;
+	  std::cout << "Mean, Median, Skewness, Kurtosis, Standard Deviation " << std::endl;
+	  for (k = 0; k < BinaryToStatisticsFilter->GetOutput()->GetNumberOfLabelObjects(); k++)
+	  {
+		  StatlabelObject = BinaryToStatisticsFilter->GetOutput()->GetNthLabelObject(k);
+		  // Output the shape properties of the ith region
+		  // Feret diameter, mean, median, skewness, kurtosis, sigma
+		  std::cout << StatlabelObject->GetMean() << std::endl;
+		  std::cout << StatlabelObject->GetMedian() << std::endl;
+		  std::cout << StatlabelObject->GetSkewness() << std::endl;
+		  std::cout << StatlabelObject->GetKurtosis() << std::endl;
+		  std::cout << StatlabelObject->GetStandardDeviation() << std::endl;
+		  std::cout << std::endl << std::endl;
+	  }
+
+	  // Now get the texture features for the blurred image
+	  textureFilter->SetInput(smoother->GetOutput());
+	  textureFilter->SetInsidePixelValue(labelValue);
+	  textureFilter->Update();
+
+	  output = textureFilter->GetFeatureMeans();
+	  outputSD = textureFilter->GetFeatureStandardDeviations();
+
+	  std::cout << "Radius 1 Texture Features (blurred image) for: " << labelName << std::endl;
+	  for (unsigned int i = 0; i < output->size(); ++i)
+	  {
+		  std::cout << (*output)[i] << std::endl;
+		  std::cout << (*outputSD)[i] << std::endl;
+	  }
 
 
 
@@ -299,6 +332,7 @@ int main(int argc, char * argv[])
 	  labelNamesIterator++;
   }
 
+  fclose(outputFile);
  
   std::cout << std::endl;
   std::cout << std::endl;
