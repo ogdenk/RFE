@@ -8,7 +8,7 @@
 #include "itkBinaryImageToShapeLabelMapFilter.h"
 #include "itkBinaryImageToStatisticsLabelMapFilter.h"
 #include "itkDiscreteGaussianImageFilter.h"
-#include "itkScalarImageToRunLengthFeaturesFilter.h""
+#include "itkScalarImageToRunLengthFeaturesFilter.h"
 #include "QuickView.h"
 #include <stdio.h>
 #include <vector>
@@ -217,8 +217,9 @@ int main(int argc, char * argv[])
   runLengthFeaturesFilter->SetFastCalculations(false);
   runLengthFeaturesFilter->SetNumberOfBinsPerAxis(1024);
   runLengthFeaturesFilter->SetPixelValueMinMax(0, 2048);
-  const RunLengthFeaturesFilterType::FeatureValueVector* runLengthOutput;
-  const RunLengthFeaturesFilterType::FeatureValueVector* runLengthOutputSD;
+
+  RunLengthFeaturesFilterType::FeatureValueVectorPointer runLengthOutput;
+  RunLengthFeaturesFilterType::FeatureValueVectorPointer runLengthOutputSD;
 
   // Run length features from itkHistogramToRunLengthFeaturesFilter.h
   // typedef enum{ ShortRunEmphasis, LongRunEmphasis, GreyLevelNonuniformity, RunLengthNonuniformity,
@@ -362,8 +363,8 @@ int main(int argc, char * argv[])
 
 	  //  Get the run-length features for the original data 
 	  runLengthFeaturesFilter->SetInput(imageReader->GetOutput());
-	  textureFilter->SetInsidePixelValue(labelValue);
-	  textureFilter->Update();
+	  runLengthFeaturesFilter->SetInsidePixelValue(labelValue);
+	  runLengthFeaturesFilter->Update();
 	  runLengthOutput = runLengthFeaturesFilter->GetFeatureMeans();
 	  runLengthOutputSD = runLengthFeaturesFilter->GetFeatureStandardDeviations();
 
@@ -535,8 +536,8 @@ int main(int argc, char * argv[])
 
 	  //  Get the run-length features for the Smoothed data 
 	  runLengthFeaturesFilter->SetInput(smoother->GetOutput());
-	  textureFilter->SetInsidePixelValue(labelValue);
-	  textureFilter->Update();
+	  runLengthFeaturesFilter->SetInsidePixelValue(labelValue);
+	  runLengthFeaturesFilter->Update();
 	  runLengthOutput = runLengthFeaturesFilter->GetFeatureMeans();
 	  runLengthOutputSD = runLengthFeaturesFilter->GetFeatureStandardDeviations();
 
