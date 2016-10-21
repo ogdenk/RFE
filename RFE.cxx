@@ -8,6 +8,7 @@
 #include "itkBinaryImageToShapeLabelMapFilter.h"
 #include "itkBinaryImageToStatisticsLabelMapFilter.h"
 #include "itkDiscreteGaussianImageFilter.h"
+#include "itkScalarImageToRunLengthFeaturesFilter.h""
 #include "QuickView.h"
 #include <stdio.h>
 #include <vector>
@@ -162,13 +163,19 @@ int main(int argc, char * argv[])
   textureFilter->SetNumberOfBinsPerAxis(1024);
   textureFilter->SetPixelValueMinMax(0, 2048);
 
-
   TextureFilterType::OffsetType   offset, test;
   TextureFilterType::OffsetVectorPointer   offset1;
   offset1 = TextureFilterType::OffsetVector::New();
   TextureFilterType::OffsetVector::ConstIterator vIt; 
   const TextureFilterType::FeatureValueVector* output;
   const TextureFilterType::FeatureValueVector* outputSD;
+  //  From itkGreyLevelCooccurrenceMatrixTextureCoefficientsCalculator.h
+  //
+  //  enum TextureFeatureName {Energy, Entropy, Correlation,
+  //  InverseDifferenceMoment, Inertia, ClusterShade, ClusterProminence, HaralickCorrelation};
+  const TextureFilterType::FeatureNameVector* featureNames;
+  featureNames = textureFilter->GetRequestedFeatures();
+  // featureNames shows that features 1,2,4,5,6,7 of the above list are default
 
   // Build the offset vector for the texture filter
   radius = 1;
@@ -202,6 +209,21 @@ int main(int argc, char * argv[])
   // Now set the offset vector for the texture filter
   textureFilter->SetOffsets(offset1);
 
+  //  Create the run-length feature filter
+  //  We will use the default values for the features and neighborhood
+  typedef itk::Statistics::ScalarImageToRunLengthFeaturesFilter<ImageType> RunLengthFeaturesFilterType;
+  RunLengthFeaturesFilterType::Pointer runLengthFeaturesFilter = RunLengthFeaturesFilterType::New();
+  runLengthFeaturesFilter->SetMaskImage(medianFilter->GetOutput());
+  runLengthFeaturesFilter->SetFastCalculations(false);
+  runLengthFeaturesFilter->SetNumberOfBinsPerAxis(1024);
+  runLengthFeaturesFilter->SetPixelValueMinMax(0, 2048);
+  const RunLengthFeaturesFilterType::FeatureValueVector* runLengthOutput;
+  const RunLengthFeaturesFilterType::FeatureValueVector* runLengthOutputSD;
+
+  // Run length features from itkHistogramToRunLengthFeaturesFilter.h
+  // typedef enum{ ShortRunEmphasis, LongRunEmphasis, GreyLevelNonuniformity, RunLengthNonuniformity,
+  //	   LowGreyLevelRunEmphasis, HighGreyLevelRunEmphasis, ShortRunLowGreyLevelEmphasis,
+  //	   ShortRunHighGreyLevelEmphasis, LongRunLowGreyLevelEmphasis, LongRunHighGreyLevelEmphasis }
 
   // Iterate over the labels we want to process
   //////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -262,12 +284,22 @@ int main(int argc, char * argv[])
 	  {
 		  StatlabelObject = BinaryToStatisticsFilter->GetOutput()->GetNthLabelObject(k);
 		  // Output the shape properties of the ith region
-		  // Feret diameter, mean, median, skewness, kurtosis, sigma
+		  // Mean, median, skewness, kurtosis, sigma
 		  std::cout << StatlabelObject->GetMean() << std::endl;
+		  outputstring = labelName + "Mean, %f \n";
+		  fprintf(outputFile, outputstring.c_str(), StatlabelObject->GetMean());
 		  std::cout << StatlabelObject->GetMedian() << std::endl;
+		  outputstring = labelName + "Median, %f \n";
+		  fprintf(outputFile, outputstring.c_str(), StatlabelObject->GetMedian());
 		  std::cout << StatlabelObject->GetSkewness() << std::endl;
+		  outputstring = labelName + "Skewness, %f \n";
+		  fprintf(outputFile, outputstring.c_str(), StatlabelObject->GetSkewness());
 		  std::cout << StatlabelObject->GetKurtosis() << std::endl;
+		  outputstring = labelName + "Kurtosis, %f \n";
+		  fprintf(outputFile, outputstring.c_str(), StatlabelObject->GetKurtosis());
 		  std::cout << StatlabelObject->GetStandardDeviation() << std::endl;
+		  outputstring = labelName + "Sigma, %f \n";
+		  fprintf(outputFile, outputstring.c_str(), StatlabelObject->GetStandardDeviation());
 		  std::cout << std::endl << std::endl;
 	  }
 
@@ -279,16 +311,142 @@ int main(int argc, char * argv[])
 	  output = textureFilter->GetFeatureMeans();
 	  outputSD = textureFilter->GetFeatureStandardDeviations();
 
+	  //  enum TextureFeatureName {Energy, Entropy, Correlation,
+	  //  InverseDifferenceMoment, Inertia, ClusterShade, ClusterProminence, HaralickCorrelation};
 	  std::cout << "Radius 1 Texture Features for: " << labelName << std::endl;
-	  for (unsigned int i = 0; i < output->size(); ++i)
-	  {
-		  std::cout << (*output)[i] << std::endl;
-		  std::cout << (*outputSD)[i] << std::endl;
-	  }
+	  
+	  std::cout << "Energy = " << (*output)[0] << std::endl;
+	  outputstring = labelName + "Energy, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*output)[0]);
+	  std::cout << "EnergySigma = " << (*outputSD)[0] << std::endl;
+	  outputstring = labelName + "EnergySigma, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*outputSD)[0]);
+
+	  std::cout << "Entropy = " << (*output)[1] << std::endl;
+	  outputstring = labelName + "Entropy, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*output)[1]);
+	  std::cout << "EntropySigma = " << (*outputSD)[1] << std::endl;
+	  outputstring = labelName + "EntropySigma, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*outputSD)[1]);
+
+	  std::cout << "InverseDifferenceMoment = " << (*output)[2] << std::endl;
+	  outputstring = labelName + "InverseDifferenceMoment, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*output)[2]);
+	  std::cout << "InverseDifferenceMomentSigma = " << (*outputSD)[2] << std::endl;
+	  outputstring = labelName + "InverseDifferenceMomentSigma, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*outputSD)[2]);
+
+	  std::cout << "Inertia = " << (*output)[3] << std::endl;
+	  outputstring = labelName + "Inertia, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*output)[3]);
+	  std::cout << "InertiaSigma = " << (*outputSD)[3] << std::endl;
+	  outputstring = labelName + "InertiaSigma, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*outputSD)[3]);
+
+	  std::cout << "ClusterShade = " << (*output)[4] << std::endl;
+	  outputstring = labelName + "ClusterShade, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*output)[4]);
+	  std::cout << "ClusterShadeSigma = " << (*outputSD)[4] << std::endl;
+	  outputstring = labelName + "ClusterShadeSigma, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*outputSD)[4]);
+
+	  std::cout << "ClusterProminence = " << (*output)[5] << std::endl;
+	  outputstring = labelName + "ClusterProminence, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*output)[5]);
+	  std::cout << "ClusterProminenceSigma = " << (*outputSD)[5] << std::endl;
+	  outputstring = labelName + "ClusterProminenceSigma, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*outputSD)[5]);
+	  
+	 
 	  std::cout << std::endl << std::endl;
 
-	  // Now get the statistics for the Blurred image data using the current label
+	  //  Get the run-length features for the original data 
+	  runLengthFeaturesFilter->SetInput(imageReader->GetOutput());
+	  textureFilter->SetInsidePixelValue(labelValue);
+	  textureFilter->Update();
+	  runLengthOutput = runLengthFeaturesFilter->GetFeatureMeans();
+	  runLengthOutputSD = runLengthFeaturesFilter->GetFeatureStandardDeviations();
 
+	  // Output the run-length features
+	  // Run length features from itkHistogramToRunLengthFeaturesFilter.h
+	  // typedef enum{ ShortRunEmphasis, LongRunEmphasis, GreyLevelNonuniformity, RunLengthNonuniformity,
+	  //	   LowGreyLevelRunEmphasis, HighGreyLevelRunEmphasis, ShortRunLowGreyLevelEmphasis,
+	  //	   ShortRunHighGreyLevelEmphasis, LongRunLowGreyLevelEmphasis, LongRunHighGreyLevelEmphasis }
+	  std::cout << "Radius 1 Run-Length Features for: " << labelName << std::endl;
+
+	  std::cout << "ShortRunEmphasis = " << (*runLengthOutput)[0] << std::endl;
+	  outputstring = labelName + "ShortRunEmphasis, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutput)[0]);
+	  std::cout << "ShortRunEmphasisSigma = " << (*runLengthOutputSD)[0] << std::endl;
+	  outputstring = labelName + "ShortRunEmphasisSigma, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutputSD)[0]);
+
+	  std::cout << "LongRunEmphasis = " << (*runLengthOutput)[1] << std::endl;
+	  outputstring = labelName + "LongRunEmphasis, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutput)[1]);
+	  std::cout << "LongRunEmphasisSigma = " << (*runLengthOutputSD)[1] << std::endl;
+	  outputstring = labelName + "LongRunEmphasisSigma, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutputSD)[1]);
+
+	  std::cout << "GreyLevelNonuniformity = " << (*runLengthOutput)[2] << std::endl;
+	  outputstring = labelName + "GreyLevelNonuniformity, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutput)[2]);
+	  std::cout << "GreyLevelNonuniformitySigma = " << (*runLengthOutputSD)[2] << std::endl;
+	  outputstring = labelName + "GreyLevelNonuniformitySigma, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutputSD)[2]);
+
+	  std::cout << "RunLengthNonuniformity = " << (*runLengthOutput)[3] << std::endl;
+	  outputstring = labelName + "RunLengthNonuniformity, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutput)[3]);
+	  std::cout << "RunLengthNonuniformitySigma = " << (*runLengthOutputSD)[3] << std::endl;
+	  outputstring = labelName + "RunLengthNonuniformitySigma, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutputSD)[3]);
+
+	  std::cout << "LowGreyLevelRunEmphasis = " << (*runLengthOutput)[4] << std::endl;
+	  outputstring = labelName + "LowGreyLevelRunEmphasis, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutput)[4]);
+	  std::cout << "LowGreyLevelRunEmphasisSigma = " << (*runLengthOutputSD)[4] << std::endl;
+	  outputstring = labelName + "LowGreyLevelRunEmphasisSigma, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutputSD)[4]);
+
+	  std::cout << "HighGreyLevelRunEmphasis = " << (*runLengthOutput)[5] << std::endl;
+	  outputstring = labelName + "HighGreyLevelRunEmphasis, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutput)[5]);
+	  std::cout << "HighGreyLevelRunEmphasisSigma = " << (*runLengthOutputSD)[5] << std::endl;
+	  outputstring = labelName + "HighGreyLevelRunEmphasisSigma, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutputSD)[5]);
+
+	  std::cout << "ShortRunLowGreyLevelEmphasis = " << (*runLengthOutput)[6] << std::endl;
+	  outputstring = labelName + "ShortRunLowGreyLevelEmphasis, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutput)[6]);
+	  std::cout << "ShortRunLowGreyLevelEmphasisSigma = " << (*runLengthOutputSD)[6] << std::endl;
+	  outputstring = labelName + "ShortRunLowGreyLevelEmphasisSigma, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutputSD)[6]);
+
+	  std::cout << "ShortRunHighGreyLevelEmphasis = " << (*runLengthOutput)[7] << std::endl;
+	  outputstring = labelName + "ShortRunHighGreyLevelEmphasis, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutput)[7]);
+	  std::cout << "ShortRunHighGreyLevelEmphasisSigma = " << (*runLengthOutputSD)[7] << std::endl;
+	  outputstring = labelName + "ShortRunHighGreyLevelEmphasisSigma, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutputSD)[7]);
+
+	  std::cout << "LongRunLowGreyLevelEmphasis = " << (*runLengthOutput)[8] << std::endl;
+	  outputstring = labelName + "LongRunLowGreyLevelEmphasis, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutput)[8]);
+	  std::cout << "LongRunLowGreyLevelEmphasisSigma = " << (*runLengthOutputSD)[8] << std::endl;
+	  outputstring = labelName + "LongRunLowGreyLevelEmphasisSigma, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutputSD)[8]);
+
+	  std::cout << "LongRunHighGreyLevelEmphasis = " << (*runLengthOutput)[9] << std::endl;
+	  outputstring = labelName + "LongRunHighGreyLevelEmphasis, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutput)[9]);
+	  std::cout << "LongRunHighGreyLevelEmphasisSigma = " << (*runLengthOutputSD)[9] << std::endl;
+	  outputstring = labelName + "LongRunHighGreyLevelEmphasisSigma, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutputSD)[9]);
+
+
+	  // Now get the statistics for the Blurred image data using the current label
+	  ////////////////////////////////////////////////////////////////////////////////////////////////
 	  BinaryToStatisticsFilter->SetInput2(smoother->GetOutput());
 	  BinaryToStatisticsFilter->SetInputForegroundValue(labelValue);
 	  BinaryToStatisticsFilter->Update();
@@ -300,12 +458,22 @@ int main(int argc, char * argv[])
 	  {
 		  StatlabelObject = BinaryToStatisticsFilter->GetOutput()->GetNthLabelObject(k);
 		  // Output the shape properties of the ith region
-		  // Feret diameter, mean, median, skewness, kurtosis, sigma
+		  // Mean, median, skewness, kurtosis, sigma
 		  std::cout << StatlabelObject->GetMean() << std::endl;
+		  outputstring = labelName + "MeanGF, %f \n";
+		  fprintf(outputFile, outputstring.c_str(), StatlabelObject->GetMean());
 		  std::cout << StatlabelObject->GetMedian() << std::endl;
+		  outputstring = labelName + "MedianGF, %f \n";
+		  fprintf(outputFile, outputstring.c_str(), StatlabelObject->GetMedian());
 		  std::cout << StatlabelObject->GetSkewness() << std::endl;
+		  outputstring = labelName + "SkewnessGF, %f \n";
+		  fprintf(outputFile, outputstring.c_str(), StatlabelObject->GetSkewness());
 		  std::cout << StatlabelObject->GetKurtosis() << std::endl;
+		  outputstring = labelName + "KurtosisGF, %f \n";
+		  fprintf(outputFile, outputstring.c_str(), StatlabelObject->GetKurtosis());
 		  std::cout << StatlabelObject->GetStandardDeviation() << std::endl;
+		  outputstring = labelName + "SigmaGF, %f \n";
+		  fprintf(outputFile, outputstring.c_str(), StatlabelObject->GetStandardDeviation());
 		  std::cout << std::endl << std::endl;
 	  }
 
@@ -318,14 +486,138 @@ int main(int argc, char * argv[])
 	  outputSD = textureFilter->GetFeatureStandardDeviations();
 
 	  std::cout << "Radius 1 Texture Features (blurred image) for: " << labelName << std::endl;
-	  for (unsigned int i = 0; i < output->size(); ++i)
-	  {
-		  std::cout << (*output)[i] << std::endl;
-		  std::cout << (*outputSD)[i] << std::endl;
-	  }
+	  //  enum TextureFeatureName {Energy, Entropy, Correlation,
+	  //  InverseDifferenceMoment, Inertia, ClusterShade, ClusterProminence, HaralickCorrelation};
 
+	  std::cout << "EnergyGF = " << (*output)[0] << std::endl;
+	  outputstring = labelName + "EnergyGF, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*output)[0]);
+	  std::cout << "EnergySigmaGF = " << (*outputSD)[0] << std::endl;
+	  outputstring = labelName + "EnergySigmaGF, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*outputSD)[0]);
 
+	  std::cout << "EntropyGF = " << (*output)[1] << std::endl;
+	  outputstring = labelName + "EntropyGF, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*output)[1]);
+	  std::cout << "EntropySigmaGF = " << (*outputSD)[1] << std::endl;
+	  outputstring = labelName + "EntropySigmaGF, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*outputSD)[1]);
+	  
+	  std::cout << "InverseDifferenceMomentGF = " << (*output)[2] << std::endl;
+	  outputstring = labelName + "InverseDifferenceMomentGF, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*output)[2]);
+	  std::cout << "InverseDifferenceMomentSigmaGF = " << (*outputSD)[2] << std::endl;
+	  outputstring = labelName + "InverseDifferenceMomentSigmaGF, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*outputSD)[2]);
 
+	  std::cout << "InertiaGF = " << (*output)[3] << std::endl;
+	  outputstring = labelName + "InertiaGF, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*output)[3]);
+	  std::cout << "InertiaSigmaGF = " << (*outputSD)[3] << std::endl;
+	  outputstring = labelName + "InertiaSigmaGF, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*outputSD)[3]);
+
+	  std::cout << "ClusterShadeGF = " << (*output)[4] << std::endl;
+	  outputstring = labelName + "ClusterShadeGF, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*output)[4]);
+	  std::cout << "ClusterShadeSigmaGF = " << (*outputSD)[4] << std::endl;
+	  outputstring = labelName + "ClusterShadeSigmaGF, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*outputSD)[4]);
+
+	  std::cout << "ClusterProminenceGF = " << (*output)[5] << std::endl;
+	  outputstring = labelName + "ClusterProminenceGF, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*output)[5]);
+	  std::cout << "ClusterProminenceSigmaGF = " << (*outputSD)[5] << std::endl;
+	  outputstring = labelName + "ClusterProminenceSigmaGF, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*outputSD)[5]);
+
+	  std::cout << std::endl << std::endl;
+
+	  //  Get the run-length features for the Smoothed data 
+	  runLengthFeaturesFilter->SetInput(smoother->GetOutput());
+	  textureFilter->SetInsidePixelValue(labelValue);
+	  textureFilter->Update();
+	  runLengthOutput = runLengthFeaturesFilter->GetFeatureMeans();
+	  runLengthOutputSD = runLengthFeaturesFilter->GetFeatureStandardDeviations();
+
+	  // Output the run-length features
+	  // Run length features from itkHistogramToRunLengthFeaturesFilter.h
+	  // typedef enum{ ShortRunEmphasis, LongRunEmphasis, GreyLevelNonuniformity, RunLengthNonuniformity,
+	  //	   LowGreyLevelRunEmphasis, HighGreyLevelRunEmphasis, ShortRunLowGreyLevelEmphasis,
+	  //	   ShortRunHighGreyLevelEmphasis, LongRunLowGreyLevelEmphasis, LongRunHighGreyLevelEmphasis }
+	  std::cout << "Radius 1 Run-Length Features (smoothed image) for: " << labelName << std::endl;
+
+	  std::cout << "ShortRunEmphasisGF = " << (*runLengthOutput)[0] << std::endl;
+	  outputstring = labelName + "ShortRunEmphasisGF, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutput)[0]);
+	  std::cout << "ShortRunEmphasisSigmaGF = " << (*runLengthOutputSD)[0] << std::endl;
+	  outputstring = labelName + "ShortRunEmphasisSigmaGF, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutputSD)[0]);
+
+	  std::cout << "LongRunEmphasisGF = " << (*runLengthOutput)[1] << std::endl;
+	  outputstring = labelName + "LongRunEmphasisGF, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutput)[1]);
+	  std::cout << "LongRunEmphasisSigmaGF = " << (*runLengthOutputSD)[1] << std::endl;
+	  outputstring = labelName + "LongRunEmphasisSigmaGF, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutputSD)[1]);
+
+	  std::cout << "GreyLevelNonuniformityGF = " << (*runLengthOutput)[2] << std::endl;
+	  outputstring = labelName + "GreyLevelNonuniformityGF, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutput)[2]);
+	  std::cout << "GreyLevelNonuniformitySigmaGF = " << (*runLengthOutputSD)[2] << std::endl;
+	  outputstring = labelName + "GreyLevelNonuniformitySigmaGF, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutputSD)[2]);
+
+	  std::cout << "RunLengthNonuniformityGF = " << (*runLengthOutput)[3] << std::endl;
+	  outputstring = labelName + "RunLengthNonuniformityGF, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutput)[3]);
+	  std::cout << "RunLengthNonuniformitySigmaGF = " << (*runLengthOutputSD)[3] << std::endl;
+	  outputstring = labelName + "RunLengthNonuniformitySigmaGF, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutputSD)[3]);
+
+	  std::cout << "LowGreyLevelRunEmphasisGF = " << (*runLengthOutput)[4] << std::endl;
+	  outputstring = labelName + "LowGreyLevelRunEmphasisGF, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutput)[4]);
+	  std::cout << "LowGreyLevelRunEmphasisSigmaGF = " << (*runLengthOutputSD)[4] << std::endl;
+	  outputstring = labelName + "LowGreyLevelRunEmphasisSigmaGF, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutputSD)[4]);
+
+	  std::cout << "HighGreyLevelRunEmphasisGF = " << (*runLengthOutput)[5] << std::endl;
+	  outputstring = labelName + "HighGreyLevelRunEmphasisGF, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutput)[5]);
+	  std::cout << "HighGreyLevelRunEmphasisSigmaGF = " << (*runLengthOutputSD)[5] << std::endl;
+	  outputstring = labelName + "HighGreyLevelRunEmphasisSigmaGF, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutputSD)[5]);
+
+	  std::cout << "ShortRunLowGreyLevelEmphasisGF = " << (*runLengthOutput)[6] << std::endl;
+	  outputstring = labelName + "ShortRunLowGreyLevelEmphasisGF, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutput)[6]);
+	  std::cout << "ShortRunLowGreyLevelEmphasisSigmaGF = " << (*runLengthOutputSD)[6] << std::endl;
+	  outputstring = labelName + "ShortRunLowGreyLevelEmphasisSigmaGF, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutputSD)[6]);
+
+	  std::cout << "ShortRunHighGreyLevelEmphasisGF = " << (*runLengthOutput)[7] << std::endl;
+	  outputstring = labelName + "ShortRunHighGreyLevelEmphasisGF, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutput)[7]);
+	  std::cout << "ShortRunHighGreyLevelEmphasisSigmaGF = " << (*runLengthOutputSD)[7] << std::endl;
+	  outputstring = labelName + "ShortRunHighGreyLevelEmphasisSigmaGF, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutputSD)[7]);
+
+	  std::cout << "LongRunLowGreyLevelEmphasisGF = " << (*runLengthOutput)[8] << std::endl;
+	  outputstring = labelName + "LongRunLowGreyLevelEmphasisGF, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutput)[8]);
+	  std::cout << "LongRunLowGreyLevelEmphasisSigmaGF = " << (*runLengthOutputSD)[8] << std::endl;
+	  outputstring = labelName + "LongRunLowGreyLevelEmphasisSigmaGF, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutputSD)[8]);
+
+	  std::cout << "LongRunHighGreyLevelEmphasisGF = " << (*runLengthOutput)[9] << std::endl;
+	  outputstring = labelName + "LongRunHighGreyLevelEmphasisGF, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutput)[9]);
+	  std::cout << "LongRunHighGreyLevelEmphasisSigmaGF = " << (*runLengthOutputSD)[9] << std::endl;
+	  outputstring = labelName + "LongRunHighGreyLevelEmphasisSigmaGF, %f \n";
+	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutputSD)[9]);
+
+	  std::cout << std::endl << std::endl;
 
 	  i++;
 	  labelValuesIterator++;
