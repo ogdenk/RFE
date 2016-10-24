@@ -14,6 +14,7 @@
 #include <vector>
 
 
+
 // These are the Freesurfer label values for the structures of interest
 #define LeftHippocampus 17
 #define RightHippocampus 53
@@ -30,6 +31,8 @@ int main(int argc, char * argv[])
   int i, j, k; // used for general purpose indexing
   int radius=1;  // size of neighborhood for GLCM determination
   bool found;  // used to build the texture neighborhood vector
+  size_t foundchar;
+  
 
   // both image data and labels can be opened as UINT's
   typedef  unsigned short  int								   PixelType;
@@ -42,26 +45,36 @@ int main(int argc, char * argv[])
   medianRadius[2] = 1;
 
   // Get the input directory specified on the command line
-  std::string inputDirectory;
+  std::string inputFile;
   if (argc > 1)
   {
-	 	inputDirectory = argv[1];
+	 	inputFile = argv[1];
   }
   else
   {
-  	std::cout <<  "Input a directory containing files to process" << std::endl;
+  	std::cout <<  "Input a file to process" << std::endl;
+	std::cout << "The label file should be in the same directory and have the name:" << std::endl;
+	std::cout << "<filename>_label.nrrd where <filename> is the input file." << std::endl;
 	exit(1);
   }
 
   // the file names for the brain scan and the label image
-  std::string imageData = inputDirectory + "/orig.nrrd";
-  std::string labelData = inputDirectory + "/labels.nrrd";
-  std::string outputstring; // used to format text output to the file
+  std::string imageData = inputFile, filename, labelData, Path, outputstring;
 
-  // Open the output file and put the directory name on the first line
-  FILE * outputFile = fopen((inputDirectory + "features.csv").c_str(), "wt");
-  outputstring = "Output Directory = " + inputDirectory + "\n";
+  foundchar = inputFile.find_last_of("/\\");
+  Path = imageData.substr(0, foundchar+1);
+
+  filename = imageData.substr(foundchar + 1);
+  foundchar = filename.find_last_of(".");
+  labelData = Path + filename.substr(0, foundchar) +"_label.nrrd";
+  
+
+  // Open the output files and put the directory name on the first line
+  FILE * outputFile = fopen((Path + filename.substr(0, foundchar) + "_features.csv").c_str(), "wt");
+  FILE * outputFileGF = fopen((Path + filename.substr(0, foundchar) + "_featuresGF.csv").c_str(), "wt");
+  outputstring = "Output Directory = " + Path + "\n";
   fprintf(outputFile, outputstring.c_str());
+  fprintf(outputFileGF, outputstring.c_str());
 	
   // Create vectors of label names and label values
   std::vector<std::string> labelNames;
@@ -253,18 +266,23 @@ int main(int argc, char * argv[])
 		  std::cout << labelObject->GetRoundness() << std::endl;
 		  outputstring = labelName + "Roundness, %f \n";
 		  fprintf(outputFile, outputstring.c_str(), labelObject->GetRoundness());
+		  fprintf(outputFileGF, outputstring.c_str(), labelObject->GetRoundness());
 		  std::cout << labelObject->GetFlatness() << std::endl;
 		  outputstring = labelName + "Flatness, %f \n";
 		  fprintf(outputFile, outputstring.c_str(), labelObject->GetFlatness());
+		  fprintf(outputFileGF, outputstring.c_str(), labelObject->GetFlatness());
 		  std::cout << labelObject->GetFeretDiameter() << std::endl;
 		  outputstring = labelName + "FeretDiameter, %f \n";
 		  fprintf(outputFile, outputstring.c_str(), labelObject->GetFeretDiameter());
+		  fprintf(outputFileGF, outputstring.c_str(), labelObject->GetFeretDiameter());
 		  std::cout << labelObject->GetPhysicalSize() << std::endl;
 		  outputstring = labelName + "Volume, %f \n";
 		  fprintf(outputFile, outputstring.c_str(), labelObject->GetPhysicalSize());
+		  fprintf(outputFileGF, outputstring.c_str(), labelObject->GetPhysicalSize());
 		  std::cout << labelObject->GetElongation() << std::endl;
 		  outputstring = labelName + "Elongation, %f \n";
 		  fprintf(outputFile, outputstring.c_str(), labelObject->GetElongation());
+		  fprintf(outputFileGF, outputstring.c_str(), labelObject->GetElongation());
 
 		  //std::cout << "Object " << i << " has principal axes " << labelObject->GetPrincipalAxes() << std::endl;
 		  //std::cout << "Object " << i << " has principal moments " << labelObject->GetPrincipalMoments() << std::endl;
@@ -462,19 +480,19 @@ int main(int argc, char * argv[])
 		  // Mean, median, skewness, kurtosis, sigma
 		  std::cout << StatlabelObject->GetMean() << std::endl;
 		  outputstring = labelName + "MeanGF, %f \n";
-		  fprintf(outputFile, outputstring.c_str(), StatlabelObject->GetMean());
+		  fprintf(outputFileGF, outputstring.c_str(), StatlabelObject->GetMean());
 		  std::cout << StatlabelObject->GetMedian() << std::endl;
 		  outputstring = labelName + "MedianGF, %f \n";
-		  fprintf(outputFile, outputstring.c_str(), StatlabelObject->GetMedian());
+		  fprintf(outputFileGF, outputstring.c_str(), StatlabelObject->GetMedian());
 		  std::cout << StatlabelObject->GetSkewness() << std::endl;
 		  outputstring = labelName + "SkewnessGF, %f \n";
-		  fprintf(outputFile, outputstring.c_str(), StatlabelObject->GetSkewness());
+		  fprintf(outputFileGF, outputstring.c_str(), StatlabelObject->GetSkewness());
 		  std::cout << StatlabelObject->GetKurtosis() << std::endl;
 		  outputstring = labelName + "KurtosisGF, %f \n";
-		  fprintf(outputFile, outputstring.c_str(), StatlabelObject->GetKurtosis());
+		  fprintf(outputFileGF, outputstring.c_str(), StatlabelObject->GetKurtosis());
 		  std::cout << StatlabelObject->GetStandardDeviation() << std::endl;
 		  outputstring = labelName + "SigmaGF, %f \n";
-		  fprintf(outputFile, outputstring.c_str(), StatlabelObject->GetStandardDeviation());
+		  fprintf(outputFileGF, outputstring.c_str(), StatlabelObject->GetStandardDeviation());
 		  std::cout << std::endl << std::endl;
 	  }
 
@@ -492,45 +510,45 @@ int main(int argc, char * argv[])
 
 	  std::cout << "EnergyGF = " << (*output)[0] << std::endl;
 	  outputstring = labelName + "EnergyGF, %f \n";
-	  fprintf(outputFile, outputstring.c_str(), (*output)[0]);
+	  fprintf(outputFileGF, outputstring.c_str(), (*output)[0]);
 	  std::cout << "EnergySigmaGF = " << (*outputSD)[0] << std::endl;
 	  outputstring = labelName + "EnergySigmaGF, %f \n";
-	  fprintf(outputFile, outputstring.c_str(), (*outputSD)[0]);
+	  fprintf(outputFileGF, outputstring.c_str(), (*outputSD)[0]);
 
 	  std::cout << "EntropyGF = " << (*output)[1] << std::endl;
 	  outputstring = labelName + "EntropyGF, %f \n";
-	  fprintf(outputFile, outputstring.c_str(), (*output)[1]);
+	  fprintf(outputFileGF, outputstring.c_str(), (*output)[1]);
 	  std::cout << "EntropySigmaGF = " << (*outputSD)[1] << std::endl;
 	  outputstring = labelName + "EntropySigmaGF, %f \n";
-	  fprintf(outputFile, outputstring.c_str(), (*outputSD)[1]);
+	  fprintf(outputFileGF, outputstring.c_str(), (*outputSD)[1]);
 	  
 	  std::cout << "InverseDifferenceMomentGF = " << (*output)[2] << std::endl;
 	  outputstring = labelName + "InverseDifferenceMomentGF, %f \n";
-	  fprintf(outputFile, outputstring.c_str(), (*output)[2]);
+	  fprintf(outputFileGF, outputstring.c_str(), (*output)[2]);
 	  std::cout << "InverseDifferenceMomentSigmaGF = " << (*outputSD)[2] << std::endl;
 	  outputstring = labelName + "InverseDifferenceMomentSigmaGF, %f \n";
-	  fprintf(outputFile, outputstring.c_str(), (*outputSD)[2]);
+	  fprintf(outputFileGF, outputstring.c_str(), (*outputSD)[2]);
 
 	  std::cout << "InertiaGF = " << (*output)[3] << std::endl;
 	  outputstring = labelName + "InertiaGF, %f \n";
-	  fprintf(outputFile, outputstring.c_str(), (*output)[3]);
+	  fprintf(outputFileGF, outputstring.c_str(), (*output)[3]);
 	  std::cout << "InertiaSigmaGF = " << (*outputSD)[3] << std::endl;
 	  outputstring = labelName + "InertiaSigmaGF, %f \n";
-	  fprintf(outputFile, outputstring.c_str(), (*outputSD)[3]);
+	  fprintf(outputFileGF, outputstring.c_str(), (*outputSD)[3]);
 
 	  std::cout << "ClusterShadeGF = " << (*output)[4] << std::endl;
 	  outputstring = labelName + "ClusterShadeGF, %f \n";
-	  fprintf(outputFile, outputstring.c_str(), (*output)[4]);
+	  fprintf(outputFileGF, outputstring.c_str(), (*output)[4]);
 	  std::cout << "ClusterShadeSigmaGF = " << (*outputSD)[4] << std::endl;
 	  outputstring = labelName + "ClusterShadeSigmaGF, %f \n";
-	  fprintf(outputFile, outputstring.c_str(), (*outputSD)[4]);
+	  fprintf(outputFileGF, outputstring.c_str(), (*outputSD)[4]);
 
 	  std::cout << "ClusterProminenceGF = " << (*output)[5] << std::endl;
 	  outputstring = labelName + "ClusterProminenceGF, %f \n";
-	  fprintf(outputFile, outputstring.c_str(), (*output)[5]);
+	  fprintf(outputFileGF, outputstring.c_str(), (*output)[5]);
 	  std::cout << "ClusterProminenceSigmaGF = " << (*outputSD)[5] << std::endl;
 	  outputstring = labelName + "ClusterProminenceSigmaGF, %f \n";
-	  fprintf(outputFile, outputstring.c_str(), (*outputSD)[5]);
+	  fprintf(outputFileGF, outputstring.c_str(), (*outputSD)[5]);
 
 	  std::cout << std::endl << std::endl;
 
@@ -550,73 +568,73 @@ int main(int argc, char * argv[])
 
 	  std::cout << "ShortRunEmphasisGF = " << (*runLengthOutput)[0] << std::endl;
 	  outputstring = labelName + "ShortRunEmphasisGF, %f \n";
-	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutput)[0]);
+	  fprintf(outputFileGF, outputstring.c_str(), (*runLengthOutput)[0]);
 	  std::cout << "ShortRunEmphasisSigmaGF = " << (*runLengthOutputSD)[0] << std::endl;
 	  outputstring = labelName + "ShortRunEmphasisSigmaGF, %f \n";
-	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutputSD)[0]);
+	  fprintf(outputFileGF, outputstring.c_str(), (*runLengthOutputSD)[0]);
 
 	  std::cout << "LongRunEmphasisGF = " << (*runLengthOutput)[1] << std::endl;
 	  outputstring = labelName + "LongRunEmphasisGF, %f \n";
-	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutput)[1]);
+	  fprintf(outputFileGF, outputstring.c_str(), (*runLengthOutput)[1]);
 	  std::cout << "LongRunEmphasisSigmaGF = " << (*runLengthOutputSD)[1] << std::endl;
 	  outputstring = labelName + "LongRunEmphasisSigmaGF, %f \n";
-	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutputSD)[1]);
+	  fprintf(outputFileGF, outputstring.c_str(), (*runLengthOutputSD)[1]);
 
 	  std::cout << "GreyLevelNonuniformityGF = " << (*runLengthOutput)[2] << std::endl;
 	  outputstring = labelName + "GreyLevelNonuniformityGF, %f \n";
-	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutput)[2]);
+	  fprintf(outputFileGF, outputstring.c_str(), (*runLengthOutput)[2]);
 	  std::cout << "GreyLevelNonuniformitySigmaGF = " << (*runLengthOutputSD)[2] << std::endl;
 	  outputstring = labelName + "GreyLevelNonuniformitySigmaGF, %f \n";
-	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutputSD)[2]);
+	  fprintf(outputFileGF, outputstring.c_str(), (*runLengthOutputSD)[2]);
 
 	  std::cout << "RunLengthNonuniformityGF = " << (*runLengthOutput)[3] << std::endl;
 	  outputstring = labelName + "RunLengthNonuniformityGF, %f \n";
-	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutput)[3]);
+	  fprintf(outputFileGF, outputstring.c_str(), (*runLengthOutput)[3]);
 	  std::cout << "RunLengthNonuniformitySigmaGF = " << (*runLengthOutputSD)[3] << std::endl;
 	  outputstring = labelName + "RunLengthNonuniformitySigmaGF, %f \n";
-	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutputSD)[3]);
+	  fprintf(outputFileGF, outputstring.c_str(), (*runLengthOutputSD)[3]);
 
 	  std::cout << "LowGreyLevelRunEmphasisGF = " << (*runLengthOutput)[4] << std::endl;
 	  outputstring = labelName + "LowGreyLevelRunEmphasisGF, %f \n";
-	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutput)[4]);
+	  fprintf(outputFileGF, outputstring.c_str(), (*runLengthOutput)[4]);
 	  std::cout << "LowGreyLevelRunEmphasisSigmaGF = " << (*runLengthOutputSD)[4] << std::endl;
 	  outputstring = labelName + "LowGreyLevelRunEmphasisSigmaGF, %f \n";
-	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutputSD)[4]);
+	  fprintf(outputFileGF, outputstring.c_str(), (*runLengthOutputSD)[4]);
 
 	  std::cout << "HighGreyLevelRunEmphasisGF = " << (*runLengthOutput)[5] << std::endl;
 	  outputstring = labelName + "HighGreyLevelRunEmphasisGF, %f \n";
-	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutput)[5]);
+	  fprintf(outputFileGF, outputstring.c_str(), (*runLengthOutput)[5]);
 	  std::cout << "HighGreyLevelRunEmphasisSigmaGF = " << (*runLengthOutputSD)[5] << std::endl;
 	  outputstring = labelName + "HighGreyLevelRunEmphasisSigmaGF, %f \n";
-	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutputSD)[5]);
+	  fprintf(outputFileGF, outputstring.c_str(), (*runLengthOutputSD)[5]);
 
 	  std::cout << "ShortRunLowGreyLevelEmphasisGF = " << (*runLengthOutput)[6] << std::endl;
 	  outputstring = labelName + "ShortRunLowGreyLevelEmphasisGF, %f \n";
-	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutput)[6]);
+	  fprintf(outputFileGF, outputstring.c_str(), (*runLengthOutput)[6]);
 	  std::cout << "ShortRunLowGreyLevelEmphasisSigmaGF = " << (*runLengthOutputSD)[6] << std::endl;
 	  outputstring = labelName + "ShortRunLowGreyLevelEmphasisSigmaGF, %f \n";
-	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutputSD)[6]);
+	  fprintf(outputFileGF, outputstring.c_str(), (*runLengthOutputSD)[6]);
 
 	  std::cout << "ShortRunHighGreyLevelEmphasisGF = " << (*runLengthOutput)[7] << std::endl;
 	  outputstring = labelName + "ShortRunHighGreyLevelEmphasisGF, %f \n";
-	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutput)[7]);
+	  fprintf(outputFileGF, outputstring.c_str(), (*runLengthOutput)[7]);
 	  std::cout << "ShortRunHighGreyLevelEmphasisSigmaGF = " << (*runLengthOutputSD)[7] << std::endl;
 	  outputstring = labelName + "ShortRunHighGreyLevelEmphasisSigmaGF, %f \n";
-	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutputSD)[7]);
+	  fprintf(outputFileGF, outputstring.c_str(), (*runLengthOutputSD)[7]);
 
 	  std::cout << "LongRunLowGreyLevelEmphasisGF = " << (*runLengthOutput)[8] << std::endl;
 	  outputstring = labelName + "LongRunLowGreyLevelEmphasisGF, %f \n";
-	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutput)[8]);
+	  fprintf(outputFileGF, outputstring.c_str(), (*runLengthOutput)[8]);
 	  std::cout << "LongRunLowGreyLevelEmphasisSigmaGF = " << (*runLengthOutputSD)[8] << std::endl;
 	  outputstring = labelName + "LongRunLowGreyLevelEmphasisSigmaGF, %f \n";
-	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutputSD)[8]);
+	  fprintf(outputFileGF, outputstring.c_str(), (*runLengthOutputSD)[8]);
 
 	  std::cout << "LongRunHighGreyLevelEmphasisGF = " << (*runLengthOutput)[9] << std::endl;
 	  outputstring = labelName + "LongRunHighGreyLevelEmphasisGF, %f \n";
-	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutput)[9]);
+	  fprintf(outputFileGF, outputstring.c_str(), (*runLengthOutput)[9]);
 	  std::cout << "LongRunHighGreyLevelEmphasisSigmaGF = " << (*runLengthOutputSD)[9] << std::endl;
 	  outputstring = labelName + "LongRunHighGreyLevelEmphasisSigmaGF, %f \n";
-	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutputSD)[9]);
+	  fprintf(outputFileGF, outputstring.c_str(), (*runLengthOutputSD)[9]);
 
 	  std::cout << std::endl << std::endl;
 
@@ -626,6 +644,7 @@ int main(int argc, char * argv[])
   }
 
   fclose(outputFile);
+  fclose(outputFileGF);
  
   std::cout << std::endl;
   std::cout << std::endl;
