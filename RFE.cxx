@@ -106,6 +106,17 @@ int main(int argc, char * argv[])
   LabelReaderType::Pointer labelReader = LabelReaderType::New();
   labelReader->SetFileName(labelData);
   labelReader->Update();
+
+  // make sure the image geometries match
+  ImageType::RegionType region = imageReader->GetOutput()->GetLargestPossibleRegion();
+  ImageType::SizeType size = region.GetSize();
+  ImageType::RegionType labelregion = labelReader->GetOutput()->GetLargestPossibleRegion();
+  ImageType::SizeType labelsize = labelregion.GetSize();
+  ImageType::SpacingType spacing = imageReader->GetOutput()->GetSpacing();
+  ImageType::SpacingType labelspacing = labelReader->GetOutput()->GetSpacing();
+  ImageType::PointType origin = imageReader->GetOutput()->GetOrigin();
+  ImageType::PointType labelorigin = labelReader->GetOutput()->GetOrigin();
+
   labelReader->GetOutput()->SetSpacing(imageReader->GetOutput()->GetSpacing());
   labelReader->GetOutput()->SetOrigin(imageReader->GetOutput()->GetOrigin());
 
