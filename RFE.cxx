@@ -150,7 +150,7 @@ int main(int argc, char * argv[])
   typedef itk::DiscreteGaussianImageFilter<ImageType, ImageType> SmoothingType;
   SmoothingType::Pointer smoother = SmoothingType::New();
   smoother->SetInput(imageReader->GetOutput());
-  smoother->SetVariance(1.0);
+  smoother->SetVariance(0.5);
   smoother->SetUseImageSpacingOn(); // this is the default value but just in case
   smoother->SetMaximumKernelWidth(5);
 
@@ -404,6 +404,7 @@ int main(int argc, char * argv[])
 	  //	   ShortRunHighGreyLevelEmphasis, LongRunLowGreyLevelEmphasis, LongRunHighGreyLevelEmphasis }
 	  std::cout << "Radius 1 Run-Length Features for: " << labelName << std::endl;
 
+	  /*
 	  std::cout << "ShortRunEmphasis = " << (*runLengthOutput)[0] << std::endl;
 	  outputstring = labelName + "ShortRunEmphasis, %f \n";
 	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutput)[0]);
@@ -417,6 +418,7 @@ int main(int argc, char * argv[])
 	  std::cout << "LongRunEmphasisSigma = " << (*runLengthOutputSD)[1] << std::endl;
 	  outputstring = labelName + "LongRunEmphasisSigma, %f \n";
 	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutputSD)[1]);
+	  */
 
 	  std::cout << "GreyLevelNonuniformity = " << (*runLengthOutput)[2] << std::endl;
 	  outputstring = labelName + "GreyLevelNonuniformity, %f \n";
@@ -432,12 +434,14 @@ int main(int argc, char * argv[])
 	  outputstring = labelName + "RunLengthNonuniformitySigma, %f \n";
 	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutputSD)[3]);
 
+	  /*
 	  std::cout << "LowGreyLevelRunEmphasis = " << (*runLengthOutput)[4] << std::endl;
 	  outputstring = labelName + "LowGreyLevelRunEmphasis, %f \n";
 	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutput)[4]);
 	  std::cout << "LowGreyLevelRunEmphasisSigma = " << (*runLengthOutputSD)[4] << std::endl;
 	  outputstring = labelName + "LowGreyLevelRunEmphasisSigma, %f \n";
 	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutputSD)[4]);
+	  */
 
 	  std::cout << "HighGreyLevelRunEmphasis = " << (*runLengthOutput)[5] << std::endl;
 	  outputstring = labelName + "HighGreyLevelRunEmphasis, %f \n";
@@ -446,12 +450,14 @@ int main(int argc, char * argv[])
 	  outputstring = labelName + "HighGreyLevelRunEmphasisSigma, %f \n";
 	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutputSD)[5]);
 
+	  /*
 	  std::cout << "ShortRunLowGreyLevelEmphasis = " << (*runLengthOutput)[6] << std::endl;
 	  outputstring = labelName + "ShortRunLowGreyLevelEmphasis, %f \n";
 	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutput)[6]);
 	  std::cout << "ShortRunLowGreyLevelEmphasisSigma = " << (*runLengthOutputSD)[6] << std::endl;
 	  outputstring = labelName + "ShortRunLowGreyLevelEmphasisSigma, %f \n";
 	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutputSD)[6]);
+	  */
 
 	  std::cout << "ShortRunHighGreyLevelEmphasis = " << (*runLengthOutput)[7] << std::endl;
 	  outputstring = labelName + "ShortRunHighGreyLevelEmphasis, %f \n";
@@ -460,12 +466,14 @@ int main(int argc, char * argv[])
 	  outputstring = labelName + "ShortRunHighGreyLevelEmphasisSigma, %f \n";
 	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutputSD)[7]);
 
+	  /*
 	  std::cout << "LongRunLowGreyLevelEmphasis = " << (*runLengthOutput)[8] << std::endl;
 	  outputstring = labelName + "LongRunLowGreyLevelEmphasis, %f \n";
 	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutput)[8]);
 	  std::cout << "LongRunLowGreyLevelEmphasisSigma = " << (*runLengthOutputSD)[8] << std::endl;
 	  outputstring = labelName + "LongRunLowGreyLevelEmphasisSigma, %f \n";
 	  fprintf(outputFile, outputstring.c_str(), (*runLengthOutputSD)[8]);
+	  */
 
 	  std::cout << "LongRunHighGreyLevelEmphasis = " << (*runLengthOutput)[9] << std::endl;
 	  outputstring = labelName + "LongRunHighGreyLevelEmphasis, %f \n";
@@ -577,6 +585,7 @@ int main(int argc, char * argv[])
 	  //	   ShortRunHighGreyLevelEmphasis, LongRunLowGreyLevelEmphasis, LongRunHighGreyLevelEmphasis }
 	  std::cout << "Radius 1 Run-Length Features (smoothed image) for: " << labelName << std::endl;
 
+	  /*
 	  std::cout << "ShortRunEmphasisGF = " << (*runLengthOutput)[0] << std::endl;
 	  outputstring = labelName + "ShortRunEmphasisGF, %f \n";
 	  fprintf(outputFileGF, outputstring.c_str(), (*runLengthOutput)[0]);
@@ -590,6 +599,7 @@ int main(int argc, char * argv[])
 	  std::cout << "LongRunEmphasisSigmaGF = " << (*runLengthOutputSD)[1] << std::endl;
 	  outputstring = labelName + "LongRunEmphasisSigmaGF, %f \n";
 	  fprintf(outputFileGF, outputstring.c_str(), (*runLengthOutputSD)[1]);
+	  */
 
 	  std::cout << "GreyLevelNonuniformityGF = " << (*runLengthOutput)[2] << std::endl;
 	  outputstring = labelName + "GreyLevelNonuniformityGF, %f \n";
@@ -605,12 +615,14 @@ int main(int argc, char * argv[])
 	  outputstring = labelName + "RunLengthNonuniformitySigmaGF, %f \n";
 	  fprintf(outputFileGF, outputstring.c_str(), (*runLengthOutputSD)[3]);
 
+	  /*
 	  std::cout << "LowGreyLevelRunEmphasisGF = " << (*runLengthOutput)[4] << std::endl;
 	  outputstring = labelName + "LowGreyLevelRunEmphasisGF, %f \n";
 	  fprintf(outputFileGF, outputstring.c_str(), (*runLengthOutput)[4]);
 	  std::cout << "LowGreyLevelRunEmphasisSigmaGF = " << (*runLengthOutputSD)[4] << std::endl;
 	  outputstring = labelName + "LowGreyLevelRunEmphasisSigmaGF, %f \n";
 	  fprintf(outputFileGF, outputstring.c_str(), (*runLengthOutputSD)[4]);
+	  */
 
 	  std::cout << "HighGreyLevelRunEmphasisGF = " << (*runLengthOutput)[5] << std::endl;
 	  outputstring = labelName + "HighGreyLevelRunEmphasisGF, %f \n";
@@ -619,12 +631,14 @@ int main(int argc, char * argv[])
 	  outputstring = labelName + "HighGreyLevelRunEmphasisSigmaGF, %f \n";
 	  fprintf(outputFileGF, outputstring.c_str(), (*runLengthOutputSD)[5]);
 
+	  /*
 	  std::cout << "ShortRunLowGreyLevelEmphasisGF = " << (*runLengthOutput)[6] << std::endl;
 	  outputstring = labelName + "ShortRunLowGreyLevelEmphasisGF, %f \n";
 	  fprintf(outputFileGF, outputstring.c_str(), (*runLengthOutput)[6]);
 	  std::cout << "ShortRunLowGreyLevelEmphasisSigmaGF = " << (*runLengthOutputSD)[6] << std::endl;
 	  outputstring = labelName + "ShortRunLowGreyLevelEmphasisSigmaGF, %f \n";
 	  fprintf(outputFileGF, outputstring.c_str(), (*runLengthOutputSD)[6]);
+	  */
 
 	  std::cout << "ShortRunHighGreyLevelEmphasisGF = " << (*runLengthOutput)[7] << std::endl;
 	  outputstring = labelName + "ShortRunHighGreyLevelEmphasisGF, %f \n";
@@ -633,12 +647,14 @@ int main(int argc, char * argv[])
 	  outputstring = labelName + "ShortRunHighGreyLevelEmphasisSigmaGF, %f \n";
 	  fprintf(outputFileGF, outputstring.c_str(), (*runLengthOutputSD)[7]);
 
+	  /*
 	  std::cout << "LongRunLowGreyLevelEmphasisGF = " << (*runLengthOutput)[8] << std::endl;
 	  outputstring = labelName + "LongRunLowGreyLevelEmphasisGF, %f \n";
 	  fprintf(outputFileGF, outputstring.c_str(), (*runLengthOutput)[8]);
 	  std::cout << "LongRunLowGreyLevelEmphasisSigmaGF = " << (*runLengthOutputSD)[8] << std::endl;
 	  outputstring = labelName + "LongRunLowGreyLevelEmphasisSigmaGF, %f \n";
 	  fprintf(outputFileGF, outputstring.c_str(), (*runLengthOutputSD)[8]);
+	  */
 
 	  std::cout << "LongRunHighGreyLevelEmphasisGF = " << (*runLengthOutput)[9] << std::endl;
 	  outputstring = labelName + "LongRunHighGreyLevelEmphasisGF, %f \n";
